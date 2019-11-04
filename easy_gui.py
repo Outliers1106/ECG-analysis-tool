@@ -88,11 +88,12 @@ def xqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None
 	#plt.rcParams['figure.figsize']=(16,9)
 	#plt.rcParams['savefig.dpi']=300
 	#plt.rcParams['figure.dpi']=300
-	fig = comparitor.plot(title='XQRS detected QRS vs reference annotations', return_fig=True)
+	fig,ax = comparitor.plot(title='XQRS detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	#buffer = BytesIO()
 	#plt.savefig(buffer)
-	plt.show(fig[0])
+	plt.grid()
+	plt.show(ax)
 	#plotdata = buffer.getvalue()
 	return summary
 
@@ -127,12 +128,13 @@ def gqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None
 	#plt.rcParams['figure.figsize'] = (16, 9)
 	#plt.rcParams['savefig.dpi'] = 300
 	#plt.rcParams['figure.dpi'] = 300
-	fig = comparitor.plot(title='GQRS detected QRS vs reference annotations', return_fig=True)
+	fig,ax = comparitor.plot(title='GQRS detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	#buffer=BytesIO()
 	#plt.savefig(buffer)
 	#plotdata=buffer.getvalue()
-	plt.show(fig[0])  # 显示图片
+	plt.grid()
+	plt.show(ax)  # 显示图片
 	return summary
 
 
@@ -212,12 +214,13 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	summary = summary.split("<br>")
 	# 将summary内容分段成列表
 	print(summary)
-	fig = comparitor.plot(title='WQRS detected QRS vs reference annotations', return_fig=True)
+	fig,ax = comparitor.plot(title='WQRS detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	#buffer=BytesIO()
 	#plt.savefig(buffer)
 	#plotdata=buffer.getvalue()
-	plt.show(fig[0])  # 显示图片
+	plt.grid()
+	plt.show(ax)  # 显示图片
 	return summary
 
 
@@ -302,12 +305,13 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	summary = summary.split("<br>")
 	# 将summary内容分段成列表
 	print(summary)
-	fig = comparitor.plot(title='SQRS detected QRS vs reference annotations', return_fig=True)
+	fig,ax = comparitor.plot(title='SQRS detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	#buffer=BytesIO()
 	#plt.savefig(buffer)
 	#plotdata=buffer.getvalue()
-	plt.show(fig[0])  # 显示图片
+	plt.grid()
+	plt.show(ax)  # 显示图片
 	return summary
 
 def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None):
@@ -384,12 +388,13 @@ def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_i
 	summary = summary.split("<br>")
 	# 将summary内容分段成列表
 	print(summary)
-	fig = comparitor.plot(title='SQRS125 detected QRS vs reference annotations', return_fig=True)
+	fig,ax = comparitor.plot(title='SQRS125 detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	#buffer=BytesIO()
 	#plt.savefig(buffer)
 	#plotdata=buffer.getvalue()
-	plt.show(fig[0])  # 显示图片
+	plt.grid()
+	plt.show(ax)  # 显示图片
 	return summary
 
 def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_inds=None):
@@ -465,12 +470,13 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 	#将HRV参数结果放入summary中
 	for item in summary_hrv:
 		summary.append(item)
-	fig = comparitor.plot(title='EcgAnalysis detected QRS vs reference annotations', return_fig=True)
+	fig,ax = comparitor.plot(title='EcgAnalysis detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	#buffer=BytesIO()
 	#plt.savefig(buffer)
 	#plotdata=buffer.getvalue()
-	plt.show(fig[0])  # 显示图片
+	plt.grid()
+	plt.show(ax)  # 显示图片
 	return summary
 
 
