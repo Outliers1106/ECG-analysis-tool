@@ -38,6 +38,36 @@ def samp2time(samples):
     hour=seconds
     return str(hour)+':'+str(min)+':'+str(second)
 
+
+def draw_graph(r_peak_inds,qrs_inds,sig,fields,algorithm_name):
+	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,  # 真实的r波位置
+												test_sample=qrs_inds,  # 算法算出的r波位置
+												window_width=int(0.1 * fields['fs']),
+												signal=sig[:, 0])  # 信号
+	# 将comparitor.print_summary()输出的内容重定向到a._buffer中
+	current = sys.stdout
+	a = __Autonomy__()
+	# 会调用a的write方法, 和self._buff的内容拼接
+	sys.stdout = a
+	comparitor.print_summary()
+	sys.stdout = current
+	# 输出捕获的内容
+	# print("捕获内容", a._buff)
+	summary = a._buff
+	summary = summary.replace("\n", "<br>")
+	summary = summary.split("<br>")
+	# 将summary内容分段成列表
+	# plt.rcParams['figure.figsize']=(16,9)
+	# plt.rcParams['savefig.dpi']=300
+	# plt.rcParams['figure.dpi']=300
+	fig, ax = comparitor.plot(title=algorithm_name+' detected QRS vs reference annotations', return_fig=True)
+	# figure 保存为二进制文件
+	# buffer = BytesIO()
+	# plt.savefig(buffer)
+	plt.grid()
+	plt.show(ax)
+	# plotdata = buffer.getvalue()
+	return summary
 #读取MIT数据，返回r波峰值位置
 #文件名 开始点 结束点
 #'mit-bih-arrhythmia-database-1.0.0/100' 0 10000
@@ -68,33 +98,8 @@ def xqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None
 	print(qrs_inds)
 	#标记位置减去采样点开始位置得到相对位置
 	r_peak_inds-=sampfrom
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,  # 真实的r波位置
-												test_sample=qrs_inds,   # 算法算出的r波位置
-												window_width=int(0.1 * fields['fs']),
-												signal=sig[:,0]) #信号
-	# 将comparitor.print_summary()输出的内容重定向到a._buffer中
-	current = sys.stdout
-	a = __Autonomy__()
-	# 会调用a的write方法, 和self._buff的内容拼接
-	sys.stdout = a
-	comparitor.print_summary()
-	sys.stdout = current
-	# 输出捕获的内容
-	# print("捕获内容", a._buff)
-	summary = a._buff
-	summary=summary.replace("\n","<br>")
-	summary=summary.split("<br>")
-	# 将summary内容分段成列表
-	#plt.rcParams['figure.figsize']=(16,9)
-	#plt.rcParams['savefig.dpi']=300
-	#plt.rcParams['figure.dpi']=300
-	fig,ax = comparitor.plot(title='XQRS detected QRS vs reference annotations', return_fig=True)
-	# figure 保存为二进制文件
-	#buffer = BytesIO()
-	#plt.savefig(buffer)
-	plt.grid()
-	plt.show(ax)
-	#plotdata = buffer.getvalue()
+	summary=draw_graph(r_peak_inds, qrs_inds, sig, fields, 'XQRS')
+
 	return summary
 
 #文件名 开始点 结束点 通道 r波坐标
@@ -104,37 +109,8 @@ def gqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None
 	qrs_inds=processing.gqrs_detect(sig=sig[:,0],fs=fields['fs'])
 	# 标记位置减去采样点开始位置得到相对位置
 	r_peak_inds -= sampfrom
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,
-											   test_sample=qrs_inds,
-											   window_width=int(0.1 * fields['fs']),
-											   signal=sig[:, 0])
-	print("r_peak_inds:", r_peak_inds)
-	print("qrs_inds:", qrs_inds)
-	print("sig", sig[:, 0])
+	summary =draw_graph(r_peak_inds, qrs_inds, sig, fields, 'GQRS')
 
-	#将comparitor.print_summary()输出的内容重定向到a._buffer中
-	current = sys.stdout
-	a = __Autonomy__()
-	# 会调用a的write方法, 和self._buff的内容拼接
-	sys.stdout = a
-	comparitor.print_summary()
-	sys.stdout = current
-	# 输出捕获的内容
-	# print("捕获内容",a._buff)
-	summary = a._buff
-	summary = summary.replace("\n", "<br>")
-	summary = summary.split("<br>")
-	# 将summary内容分段成列表
-	#plt.rcParams['figure.figsize'] = (16, 9)
-	#plt.rcParams['savefig.dpi'] = 300
-	#plt.rcParams['figure.dpi'] = 300
-	fig,ax = comparitor.plot(title='GQRS detected QRS vs reference annotations', return_fig=True)
-	# figure 保存为二进制文件
-	#buffer=BytesIO()
-	#plt.savefig(buffer)
-	#plotdata=buffer.getvalue()
-	plt.grid()
-	plt.show(ax)  # 显示图片
 	return summary
 
 
@@ -194,33 +170,10 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	#print('qrs_inds shape:', qrs_inds.shape)
 	r_peak_inds-=sampfrom
 	qrs_inds-=sampfrom
-	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
 
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,
-											   test_sample=qrs_inds,
-											   window_width=int(0.1 * fields['fs']),
-											   signal=sig[:, 0])
-	#将comparitor.print_summary()输出的内容重定向到a._buffer
-	current = sys.stdout
-	a = __Autonomy__()
-	# 会调用a的write方法, 和self._buff的内容拼接
-	sys.stdout = a
-	comparitor.print_summary()
-	sys.stdout = current
-	# 输出捕获的内容
-	# print("捕获内容",a._buff)
-	summary = a._buff
-	summary = summary.replace("\n", "<br>")
-	summary = summary.split("<br>")
-	# 将summary内容分段成列表
-	print(summary)
-	fig,ax = comparitor.plot(title='WQRS detected QRS vs reference annotations', return_fig=True)
-	# figure 保存为二进制文件
-	#buffer=BytesIO()
-	#plt.savefig(buffer)
-	#plotdata=buffer.getvalue()
-	plt.grid()
-	plt.show(ax)  # 显示图片
+	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
+	summary =draw_graph(r_peak_inds, qrs_inds, sig, fields, 'WQRS')
+
 	return summary
 
 
@@ -287,31 +240,8 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	r_peak_inds -= sampfrom
 	qrs_inds -= sampfrom
 	# 标记位置减去采样点开始位置得到相对位置
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,
-											   test_sample=qrs_inds,
-											   window_width=int(0.1 * fields['fs']),
-											   signal=sig[:, 0])
-	#将comparitor.print_summary()输出的内容重定向到a._buffer
-	current = sys.stdout
-	a = __Autonomy__()
-	# 会调用a的write方法, 和self._buff的内容拼接
-	sys.stdout = a
-	comparitor.print_summary()
-	sys.stdout = current
-	# 输出捕获的内容
-	# print("捕获内容",a._buff)
-	summary = a._buff
-	summary = summary.replace("\n", "<br>")
-	summary = summary.split("<br>")
-	# 将summary内容分段成列表
-	print(summary)
-	fig,ax = comparitor.plot(title='SQRS detected QRS vs reference annotations', return_fig=True)
-	# figure 保存为二进制文件
-	#buffer=BytesIO()
-	#plt.savefig(buffer)
-	#plotdata=buffer.getvalue()
-	plt.grid()
-	plt.show(ax)  # 显示图片
+	summary =draw_graph(r_peak_inds, qrs_inds, sig, fields, 'SQRS')
+
 	return summary
 
 def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None):
@@ -370,31 +300,8 @@ def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_i
 	r_peak_inds -= sampfrom
 	qrs_inds -= sampfrom
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,
-											   test_sample=qrs_inds,
-											   window_width=int(0.1 * fields['fs']),
-											   signal=sig[:, 0])
-	#将comparitor.print_summary()输出的内容重定向到a._buffer
-	current = sys.stdout
-	a = __Autonomy__()
-	# 会调用a的write方法, 和self._buff的内容拼接
-	sys.stdout = a
-	comparitor.print_summary()
-	sys.stdout = current
-	# 输出捕获的内容
-	# print("捕获内容",a._buff)
-	summary = a._buff
-	summary = summary.replace("\n", "<br>")
-	summary = summary.split("<br>")
-	# 将summary内容分段成列表
-	print(summary)
-	fig,ax = comparitor.plot(title='SQRS125 detected QRS vs reference annotations', return_fig=True)
-	# figure 保存为二进制文件
-	#buffer=BytesIO()
-	#plt.savefig(buffer)
-	#plotdata=buffer.getvalue()
-	plt.grid()
-	plt.show(ax)  # 显示图片
+	summary =draw_graph(r_peak_inds, qrs_inds, sig, fields, 'SQRS125')
+
 	return summary
 
 def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_inds=None):
@@ -449,34 +356,11 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 	#print('qrs_inds shape:', qrs_inds.shape)
 
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,
-											   test_sample=qrs_inds,
-											   window_width=int(0.1 * fields['fs']),
-											   signal=sig[:, 0])
-	#将comparitor.print_summary()输出的内容重定向到a._buffer
-	current = sys.stdout
-	a = __Autonomy__()
-	# 会调用a的write方法, 和self._buff的内容拼接
-	sys.stdout = a
-	comparitor.print_summary()
-	sys.stdout = current
-	# 输出捕获的内容
-	# print("捕获内容",a._buff)
-	summary = a._buff
-	summary = summary.replace("\n", "<br>")
-	summary = summary.split("<br>")
-	# 将summary内容分段成列表
-	print(summary)
-	#将HRV参数结果放入summary中
+	summary=draw_graph(r_peak_inds, qrs_inds, sig, fields, 'EcgAnalysis')
+	# 将HRV参数结果放入summary中
 	for item in summary_hrv:
 		summary.append(item)
-	fig,ax = comparitor.plot(title='EcgAnalysis detected QRS vs reference annotations', return_fig=True)
-	# figure 保存为二进制文件
-	#buffer=BytesIO()
-	#plt.savefig(buffer)
-	#plotdata=buffer.getvalue()
-	plt.grid()
-	plt.show(ax)  # 显示图片
+
 	return summary
 
 
