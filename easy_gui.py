@@ -64,6 +64,21 @@ def draw_graph(r_peak_inds,qrs_inds,sig,fields,algorithm_name):
 	# figure 保存为二进制文件
 	# buffer = BytesIO()
 	# plt.savefig(buffer)
+	#标注未识别和识别错误的点
+	unmatched_ref_sample = comparitor.unmatched_ref_sample
+	unmatched_test_sample = comparitor.unmatched_test_sample
+	for sample in unmatched_ref_sample:
+		ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
+		ax.annotate(r'unmatched_ref',
+				 xy=(sample, sig[sample][0]), xycoords='data',
+				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
+				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
+	for sample in unmatched_test_sample:
+		ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
+		ax.annotate(r'unmatched_ref',
+				 xy=(sample, sig[sample][0]), xycoords='data',
+				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
+				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 	plt.grid()
 	plt.show(ax)
 	# plotdata = buffer.getvalue()
