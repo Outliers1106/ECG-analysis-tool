@@ -79,6 +79,10 @@ def draw_graph(r_peak_inds,qrs_inds,sig,fields,algorithm_name):
 				 xy=(sample, sig[sample][0]), xycoords='data',
 				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
+
+	if algorithm_name=='EcgAnalysis':
+
+		pass
 	plt.grid()
 	plt.show(ax)
 	# plotdata = buffer.getvalue()
@@ -378,9 +382,20 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 
 	return summary
 
+def read_other_peaks_and_intervals():
+	pass
 
+def select_one_record():
+	pass
 
+def select_mult_record():
+	pass
 
+def select_one_algorithm():
+	pass
+
+def select_mult_algorithm():
+	pass
 
 while True:
 	#part 1 选择数据
@@ -391,8 +406,8 @@ while True:
 		choices_list.append(str(200+i))
 	msg="请选择心电数据"
 	title="选择心电数据"
-	ecg_name=g.choicebox(msg,title,choices=choices_list)
-
+	ecg_name=g.multchoicebox(msg,title,choices=choices_list)
+	ecg_name=ecg_name[0]
 	#part 2 选择数据长度
 	dir_pre = os.getcwd().replace('\\', '/')
 	# 获得当前选择的心电图数据的路径及文件名
@@ -404,9 +419,10 @@ while True:
 	msg+=("当前数据终止点为"+str(sig_len))
 	print(msg)
 	fieldNames=["*数据起始点","*数据终止点","*数据通道"]
+	defaultValues=['0',str(sig_len),'0']
 	fieldValues=[]
 	title="ECG相关信息输入"
-	fieldValues=g.multenterbox(msg,title,fieldNames)
+	fieldValues=g.multenterbox(msg,title,fieldNames,defaultValues)
 	while True:
 		if fieldValues==None:
 			break
