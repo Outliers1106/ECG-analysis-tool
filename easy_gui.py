@@ -11,6 +11,7 @@ import os
 import ctypes
 import _ctypes
 import re
+from wfdb_func import *
 import win32api
 class __Autonomy__(object):
     """
@@ -41,12 +42,10 @@ def samp2time(samples,freq):
 
 
 def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t_inds=None):
-	print(qrs_inds)
 	if len(qrs_inds)==1:
 		num=qrs_inds[0]
 		qrs_inds=np.array([-100])
 		qrs_inds=np.append(qrs_inds,num)
-	print(qrs_inds)
 	#至少有两个点才能用下面这个函数
 	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,  # 真实的r波位置
 												test_sample=qrs_inds,  # 算法算出的r波位置
@@ -76,21 +75,34 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 	unmatched_ref_sample = comparitor.unmatched_ref_sample
 	unmatched_test_sample = comparitor.unmatched_test_sample
 	for sample in unmatched_ref_sample:
-		ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
+		#ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
 		ax.annotate(r'unmatched_ref',
 				 xy=(sample, sig[sample][0]), xycoords='data',
 				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 	for sample in unmatched_test_sample:
-		ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
+		#ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
 		ax.annotate(r'unmatched_test',
 				 xy=(sample, sig[sample][0]), xycoords='data',
 				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 
-	if algorithm_name=='EcgAnalysis_Algorithm and HRV_Analysis':
+	if algorithm_name=='EcgAnalysis':
 
-		pass
+		for sample in p_inds:
+			ax.scatter([sample, ], [sig[sample][0], ], 20, color='yellow')
+		for sample in t_inds:
+			ax.scatter([sample, ], [sig[sample][0], ], 20, color='purple')
+		'''
+		p_sigval=list()
+		for p in p_inds:
+			p_sigval.append(sig[p])
+		t_sigval=list()
+		for t in t_inds:
+			t_sigval.append(sig[t])
+		ax.plot(p_inds,p_sigval,marker='*',label='P peaks')
+		ax.plot(t_inds,t_sigval,marker='*',label='T peaks')
+		'''
 	plt.grid()
 	plt.show(ax)
 	# plotdata = buffer.getvalue()
@@ -383,7 +395,7 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 
 
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
-	summary=draw_graph(r_peak_inds, sig, fields, 'EcgAnalysis', qrs_inds)
+	summary=draw_graph(r_peak_inds, sig, fields, 'EcgAnalysis', qrs_inds,p_inds,t_inds)
 	# 将HRV参数结果放入summary中
 	for item in summary_hrv:
 		summary.append(item)
@@ -457,85 +469,88 @@ def select_one_algorithm():
 def select_mult_algorithm():
 	pass
 
-while True:
-	#part 1 选择数据
-	choices_list=[]
-	for i in range(2000):
-		num="%05d" % (i+1)
-		choices_list.append('CPSC'+num)
-	for i in range(25):
-		choices_list.append(str(100+i))
-	for i in range(35):
-		choices_list.append(str(200+i))
 
-	msg="请选择心电数据"
-	title="选择心电数据"
-	ecg_name=g.multchoicebox(msg,title,choices=choices_list)
-	ecg_name=ecg_name[0]
-
-	if ecg_name[0] == 'C':
-		freq = 500
-	else:
-		freq = 360
-
-	#part 2 选择数据长度
-	dir_pre = os.getcwd().replace('\\', '/')
-	# 获得当前选择的心电图数据的路径及文件名
-	ecg_file_name = dir_pre + '/mit-bih-arrhythmia-database-1.0.0/' + str(ecg_name)
-	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[0])
-	sig_len=len(sig)
-
-	msg="请输入数据起始点、终止点、数据通道(0,1),"
-	msg+=("当前数据终止点为"+str(sig_len))
-	print(msg)
-	fieldNames=["*数据起始点","*数据终止点","*数据通道"]
-	defaultValues=['0',str(sig_len),'0']
-	fieldValues=[]
-	title="ECG相关信息输入"
-	fieldValues=g.multenterbox(msg,title,fieldNames,defaultValues)
+if __name__=="__main__":
 	while True:
-		if fieldValues==None:
-			break
-		errmsg=""
-		for i in range(len(fieldNames)):
-			option=fieldNames[i].strip()
-			if fieldValues[i].strip()=="" and option[0]=='*':
-				errmsg+=("【%s】为必填项" %fieldNames[i])
-			elif i==2 and (int(fieldValues[i])>1 or int(fieldValues[i])<0):
-				errmsg += ("【%s】只能为0或1" % fieldNames[i])
-		if errmsg=="":
-			break
-		fieldValues = g.multenterbox(errmsg, title, fieldNames, fieldValues)
-	sampfrom=int(fieldValues[0])
-	sampto=int(fieldValues[1])
-	channel=int(fieldValues[2])
+		# part 1 选择数据
+		choices_list = []
+		for i in range(2000):
+			num = "%05d" % (i + 1)
+			choices_list.append('CPSC' + num)
+		for i in range(25):
+			choices_list.append(str(100 + i))
+		for i in range(35):
+			choices_list.append(str(200 + i))
 
-	#part3 选择心电检测算法
-	msg="请选择心电检测算法"
-	title="选择心电检测算法"
-	choices_list=["XQRS_Algorithm","GQRS_Algorithm","WQRS_Algorithm","SQRS_Algorithm","SQRS125_Algorithm","EcgAnalysis_Algorithm and HRV_Analysis"]
-	reply=g.choicebox(msg,title,choices=choices_list)
-	r_peak_inds=read_r_peak(ecg_file_name,sampfrom,sampto)
-	summary=None
-	if reply=="WQRS_Algorithm":
-		summary=wqrs_algorithm(ecg_file_name,sampfrom,sampto,channel,r_peak_inds)
-	elif reply=="XQRS_Algorithm":
-		summary=xqrs_algorithm(ecg_file_name,sampfrom,sampto,channel,r_peak_inds)
-	elif reply=="GQRS_Algorithm":
-		summary = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
-	elif reply=="SQRS_Algorithm":
-		summary=sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,freq)
-	elif reply=="SQRS125_Algorithm":
-		summary=sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,freq)
-	elif reply=="EcgAnalysis_Algorithm and HRV_Analysis":
-		summary=EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
-	else:
-		pass
+		msg = "请选择心电数据"
+		title = "选择心电数据"
+		ecg_name = g.multchoicebox(msg, title, choices=choices_list)
+		ecg_name = ecg_name[0]
 
-	summary_=""
-	for item in summary:
-		summary_+=item+'\n'
-	title="结果分析"
-	if reply=="EcgAnalysis_Algorithm and HRV_Analysis":
-		title="结果分析以及心率变异系数"
-	g.msgbox(msg=summary_, title=title)
+		if ecg_name[0] == 'C':
+			freq = 500
+		else:
+			freq = 360
+
+		# part 2 选择数据长度
+		dir_pre = os.getcwd().replace('\\', '/')
+		# 获得当前选择的心电图数据的路径及文件名
+		ecg_file_name = dir_pre + '/mit-bih-arrhythmia-database-1.0.0/' + str(ecg_name)
+		sig, fields = wfdb.rdsamp(ecg_file_name, channels=[0])
+		sig_len = len(sig)
+
+		msg = "请输入数据起始点、终止点、数据通道(0,1),"
+		msg += ("当前数据终止点为" + str(sig_len))
+		print(msg)
+		fieldNames = ["*数据起始点", "*数据终止点", "*数据通道"]
+		defaultValues = ['0', str(sig_len), '0']
+		fieldValues = []
+		title = "ECG相关信息输入"
+		fieldValues = g.multenterbox(msg, title, fieldNames, defaultValues)
+		while True:
+			if fieldValues == None:
+				break
+			errmsg = ""
+			for i in range(len(fieldNames)):
+				option = fieldNames[i].strip()
+				if fieldValues[i].strip() == "" and option[0] == '*':
+					errmsg += ("【%s】为必填项" % fieldNames[i])
+				elif i == 2 and (int(fieldValues[i]) > 1 or int(fieldValues[i]) < 0):
+					errmsg += ("【%s】只能为0或1" % fieldNames[i])
+			if errmsg == "":
+				break
+			fieldValues = g.multenterbox(errmsg, title, fieldNames, fieldValues)
+		sampfrom = int(fieldValues[0])
+		sampto = int(fieldValues[1])
+		channel = int(fieldValues[2])
+
+		# part3 选择心电检测算法
+		msg = "请选择心电检测算法"
+		title = "选择心电检测算法"
+		choices_list = ["XQRS_Algorithm", "GQRS_Algorithm", "WQRS_Algorithm", "SQRS_Algorithm", "SQRS125_Algorithm",
+						"EcgAnalysis_Algorithm and HRV_Analysis"]
+		reply = g.choicebox(msg, title, choices=choices_list)
+		r_peak_inds = read_r_peak(ecg_file_name, sampfrom, sampto)
+		summary = None
+		if reply == "WQRS_Algorithm":
+			summary = wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
+		elif reply == "XQRS_Algorithm":
+			summary = xqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
+		elif reply == "GQRS_Algorithm":
+			summary = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
+		elif reply == "SQRS_Algorithm":
+			summary = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq)
+		elif reply == "SQRS125_Algorithm":
+			summary = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq)
+		elif reply == "EcgAnalysis_Algorithm and HRV_Analysis":
+			summary = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
+		else:
+			pass
+
+		summary_ = ""
+		for item in summary:
+			summary_ += item + '\n'
+		title = "结果分析"
+		if reply == "EcgAnalysis_Algorithm and HRV_Analysis":
+			title = "结果分析以及心率变异系数"
+		g.msgbox(msg=summary_, title=title)
