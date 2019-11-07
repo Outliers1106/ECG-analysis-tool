@@ -47,7 +47,7 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 		qrs_inds=np.array([-100])
 		qrs_inds=np.append(qrs_inds,num)
 	#至少有两个点才能用下面这个函数
-	comparitor = processing.compare_annotations(ref_sample=r_peak_inds,  # 真实的r波位置
+	comparitor = compare_annotations(ref_sample=r_peak_inds,  # 真实的r波位置
 												test_sample=qrs_inds,  # 算法算出的r波位置
 												window_width=int(0.1 * fields['fs']),
 												signal=sig[:, 0])  # 信号
@@ -67,7 +67,7 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 	# plt.rcParams['figure.figsize']=(16,9)
 	# plt.rcParams['savefig.dpi']=300
 	# plt.rcParams['figure.dpi']=300
-	fig, ax = comparitor.plot(title=algorithm_name+' detected QRS vs reference annotations', return_fig=True)
+	fig, ax, legend = comparitor.plot(title=algorithm_name+' detected QRS vs reference annotations', return_fig=True)
 	# figure 保存为二进制文件
 	# buffer = BytesIO()
 	# plt.savefig(buffer)
@@ -88,21 +88,12 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 
 	if algorithm_name=='EcgAnalysis':
+		ax.scatter(p_inds,sig[p_inds],20,color="orange")
+		ax.scatter(t_inds, sig[t_inds], 20, color="purple")
+		legend.append('P peaks Detected (%d)' % len(p_inds))
+		legend.append('T peaks Detected (%d)' % len(t_inds))
+		ax.legend(legend)
 
-		for sample in p_inds:
-			ax.scatter([sample, ], [sig[sample][0], ], 20, color='yellow')
-		for sample in t_inds:
-			ax.scatter([sample, ], [sig[sample][0], ], 20, color='purple')
-		'''
-		p_sigval=list()
-		for p in p_inds:
-			p_sigval.append(sig[p])
-		t_sigval=list()
-		for t in t_inds:
-			t_sigval.append(sig[t])
-		ax.plot(p_inds,p_sigval,marker='*',label='P peaks')
-		ax.plot(t_inds,t_sigval,marker='*',label='T peaks')
-		'''
 	plt.grid()
 	plt.show(ax)
 	# plotdata = buffer.getvalue()
