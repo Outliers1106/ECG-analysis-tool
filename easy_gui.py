@@ -41,7 +41,7 @@ def samp2time(samples,freq):
     return str(hour)+':'+str(min)+':'+str(second)
 
 
-def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t_inds=None):
+def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t_inds=None,freq=None,pic_size=1,pic_index=1,fig=None):
 	if len(qrs_inds)==1:
 		num=qrs_inds[0]
 		qrs_inds=np.array([-100])
@@ -63,11 +63,14 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 	summary = a._buff
 	summary = summary.replace("\n", "<br>")
 	summary = summary.split("<br>")
+	summary =[ item for item in summary if item!='']
+	summary.insert(0,algorithm_name)
 	# 将summary内容分段成列表
 	# plt.rcParams['figure.figsize']=(16,9)
 	# plt.rcParams['savefig.dpi']=300
 	# plt.rcParams['figure.dpi']=300
-	fig, ax, legend = comparitor.plot(title=algorithm_name+' detected QRS vs reference annotations', return_fig=True)
+	fig, ax, legend = comparitor.plot(title=algorithm_name+' detected QRS vs reference annotations', return_fig=True,
+									  pic_size=pic_size,pic_index=pic_index,fig=fig)
 	# figure 保存为二进制文件
 	# buffer = BytesIO()
 	# plt.savefig(buffer)
@@ -76,28 +79,52 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 	unmatched_test_sample = comparitor.unmatched_test_sample
 	for sample in unmatched_ref_sample:
 		#ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
-		ax.annotate(r'unmatched_ref',
+		ax.annotate(r'miss',
 				 xy=(sample, sig[sample][0]), xycoords='data',
 				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 	for sample in unmatched_test_sample:
 		#ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
-		ax.annotate(r'unmatched_test',
+		ax.annotate(r'X',
 				 xy=(sample, sig[sample][0]), xycoords='data',
 				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 
 	if algorithm_name=='EcgAnalysis':
-		ax.scatter(p_inds,sig[p_inds],20,color="orange")
-		ax.scatter(t_inds, sig[t_inds], 20, color="purple")
+		ax.scatter(p_inds,sig[p_inds],30,color="cyan",marker="o")
+		ax.scatter(t_inds, sig[t_inds], 30, color="orange",marker="o")
 		legend.append('P peaks Detected (%d)' % len(p_inds))
 		legend.append('T peaks Detected (%d)' % len(t_inds))
-		ax.legend(legend)
+		ax.legend(legend,fontsize=6,loc='lower right')
+		#draw pp intervals
+		if len(qrs_inds)>1:
+			max_val=max(sig)
+			print("max_Val",max_val)
+			max_val=1.05*max_val
+			for i in range(len(qrs_inds)):
+				if i==len(qrs_inds)-1:
+					ax.plot([qrs_inds[i],qrs_inds[i]],[sig[qrs_inds[i]],max_val],':',linewidth=1.0,color="red")
+					break
+				index_l = qrs_inds[i]
+				index_r = qrs_inds[i + 1]
+				ax.plot([index_l, index_l], [sig[index_l], max_val] , ':', linewidth=1.0,color="red")  # 竖直点线
+				#ax.plot([index_r, index_r], [0, max_val], ':', linewidth=0.5)
+				ax.plot([index_l, index_r], [max_val, max_val], linewidth=0.7,color='black')  # 水平实线
+				interval_num = "%.2f" % ((index_r - index_l) / freq)
+				label="RR:"+interval_num+"s"
+				ax.text((index_l + index_r) / 2, max_val*1.005, label, fontdict={'size': 8})
+		# annotation_word='PP Intervals:'+interval_num +'s'
+		# ax.text((index_l+index_r)/2,mid,annotation_word,fontdict={'size':8})
+
+
+
+
 
 	plt.grid()
-	plt.show(ax)
+	if pic_size==pic_index:
+		plt.show(ax)
 	# plotdata = buffer.getvalue()
-	return summary
+	return summary,fig
 #读取MIT数据，返回r波峰值位置
 #文件名 开始点 结束点
 #'mit-bih-arrhythmia-database-1.0.0/100' 0 10000
@@ -121,30 +148,30 @@ def read_r_peak(filename,sampfrom=None,sampto=None):
 
 #文件名 开始点 结束点 通道 r波坐标
 #'mit-bih-arrhythmia-database-1.0.0/100' 0 10000 0或1 list
-def xqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None):
+def xqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,fig=None,pic_index=1,pic_size=1):
 	sig, fields = wfdb.rdsamp(filename, channels=[channel],sampfrom=sampfrom,sampto=sampto)
 
 	qrs_inds=processing.xqrs_detect(sig=sig[:,0],fs=fields['fs'])#numpy.array
 	print(qrs_inds)
 	#标记位置减去采样点开始位置得到相对位置
 	r_peak_inds-=sampfrom
-	summary=draw_graph(r_peak_inds, sig, fields, 'XQRS',qrs_inds)
+	summary, fig=draw_graph(r_peak_inds, sig, fields, 'XQRS',qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
 
-	return summary
+	return summary, fig
 
 #文件名 开始点 结束点 通道 r波坐标
 #'mit-bih-arrhythmia-database-1.0.0/100' 0 10000 0或1 list
-def gqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None):
+def gqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,fig=None,pic_index=1,pic_size=1):
 	sig, fields = wfdb.rdsamp(filename, channels=[channel], sampfrom=sampfrom,sampto=sampto)
 	qrs_inds=processing.gqrs_detect(sig=sig[:,0],fs=fields['fs'])
 	# 标记位置减去采样点开始位置得到相对位置
 	r_peak_inds -= sampfrom
-	summary =draw_graph(r_peak_inds, sig, fields, 'GQRS', qrs_inds)
+	summary, fig=draw_graph(r_peak_inds, sig, fields, 'GQRS', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
 
-	return summary
+	return summary, fig
 
 
-def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None):
+def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,fig=None,pic_index=1,pic_size=1):
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
 	r_peak_inds -= sampfrom
 
@@ -196,8 +223,8 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	qrs_inds_len=res[0]#返回int数组 在第0位记录数组长度
 	if qrs_inds_len<0:
 		qrs_inds= np.array([-100])
-		summary = draw_graph(r_peak_inds, sig, fields, 'WQRS', qrs_inds)
-		return summary
+		summary, fig = draw_graph(r_peak_inds, sig, fields, 'WQRS', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
+		return summary, fig
 
 	qrs_inds=list()
 	for i in range(qrs_inds_len):
@@ -208,12 +235,12 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	qrs_inds-=sampfrom
 
 
-	summary =draw_graph(r_peak_inds, sig, fields, 'WQRS', qrs_inds)
+	summary,fig =draw_graph(r_peak_inds, sig, fields, 'WQRS', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
 
-	return summary
+	return summary,fig
 
 
-def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,freq=None):
+def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,freq=None,fig=None,pic_index=1,pic_size=1):
 
 	ecg_file_name_list = ecg_file_name.split('/')
 	ecg_name = ecg_file_name_list[len(ecg_file_name_list) - 1]
@@ -265,8 +292,8 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	qrs_inds_len=res[0]#返回int数组 在第0位记录数组长度
 	if qrs_inds_len<0:
 		qrs_inds= np.array([-100])
-		summary = draw_graph(r_peak_inds, sig, fields, 'SQRS', qrs_inds)
-		return summary
+		summary, fig = draw_graph(r_peak_inds, sig, fields, 'SQRS', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
+		return summary, fig
 
 	qrs_inds=list()
 	for i in range(qrs_inds_len):
@@ -276,11 +303,11 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	print(qrs_inds)
 	qrs_inds -= sampfrom
 	# 标记位置减去采样点开始位置得到相对位置
-	summary =draw_graph(r_peak_inds, sig, fields, 'SQRS', qrs_inds)
+	summary, fig =draw_graph(r_peak_inds, sig, fields, 'SQRS', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
 
-	return summary
+	return summary, fig
 
-def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,freq=None):
+def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,freq=None,fig=None,pic_index=1,pic_size=1):
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
 	r_peak_inds -= sampfrom
 	ecg_file_name_list = ecg_file_name.split('/')
@@ -330,8 +357,8 @@ def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_i
 	qrs_inds_len=res[0]#返回int数组 在第0位记录数组长度
 	if qrs_inds_len<0:
 		qrs_inds= np.array([-100])
-		summary = draw_graph(r_peak_inds, sig, fields, 'SQRS125', qrs_inds)
-		return summary
+		summary, fig = draw_graph(r_peak_inds, sig, fields, 'SQRS125', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
+		return summary, fig
 
 	qrs_inds=list()
 	for i in range(qrs_inds_len):
@@ -342,11 +369,10 @@ def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_i
 	# 标记位置减去采样点开始位置得到相对位置
 	qrs_inds -= sampfrom
 
-	summary =draw_graph(r_peak_inds, sig, fields, 'SQRS125', qrs_inds)
+	summary, fig =draw_graph(r_peak_inds, sig, fields, 'SQRS125', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
+	return summary, fig
 
-	return summary
-
-def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_inds=None):
+def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_inds=None,freq=None,fig=None,pic_index=1,pic_size=1):
 	ecg_file_name_list = ecg_file_name.split('/')
 	ecg_name = ecg_file_name_list[len(ecg_file_name_list) - 1]
 	BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -369,11 +395,13 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 	summary_hrv=list()
 	for line in open('foo.nnstat'):
 		line=f.readline()
+		line=line.replace('\n','')
 		summary_hrv.append(line)
 	f.close()
 	f=open('foo.pwr')
 	for line in open('foo.pwr'):
 		line=f.readline()
+		line=line.replace('\n', '')
 		summary_hrv.append(line)
 	f.close()
 
@@ -386,12 +414,12 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 
 
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
-	summary=draw_graph(r_peak_inds, sig, fields, 'EcgAnalysis', qrs_inds,p_inds,t_inds)
+	summary, fig=draw_graph(r_peak_inds, sig, fields, 'EcgAnalysis', qrs_inds,p_inds,t_inds,freq,fig=fig,pic_index=pic_index,pic_size=pic_size)
 	# 将HRV参数结果放入summary中
+	print(summary_hrv)
 	for item in summary_hrv:
 		summary.append(item)
-
-	return summary
+	return summary, fig
 
 def read_peaks_and_intervals_for_EcgAnalysis(sampfrom,sampto):
 	f = open('mit-bih-arrhythmia-database-1.0.0/QRSbt.txt')  # 即Ramp.txt，都一样
@@ -477,7 +505,7 @@ if __name__=="__main__":
 		title = "选择心电数据"
 		ecg_name = g.multchoicebox(msg, title, choices=choices_list)
 		ecg_name = ecg_name[0]
-
+		freq=None
 		if ecg_name[0] == 'C':
 			freq = 500
 		else:
@@ -520,28 +548,31 @@ if __name__=="__main__":
 		title = "选择心电检测算法"
 		choices_list = ["XQRS_Algorithm", "GQRS_Algorithm", "WQRS_Algorithm", "SQRS_Algorithm", "SQRS125_Algorithm",
 						"EcgAnalysis_Algorithm and HRV_Analysis"]
-		reply = g.choicebox(msg, title, choices=choices_list)
+		reply = g.multchoicebox(msg, title, choices=choices_list)#list
 		r_peak_inds = read_r_peak(ecg_file_name, sampfrom, sampto)
-		summary = None
-		if reply == "WQRS_Algorithm":
-			summary = wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
-		elif reply == "XQRS_Algorithm":
-			summary = xqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
-		elif reply == "GQRS_Algorithm":
-			summary = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
-		elif reply == "SQRS_Algorithm":
-			summary = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq)
-		elif reply == "SQRS125_Algorithm":
-			summary = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq)
-		elif reply == "EcgAnalysis_Algorithm and HRV_Analysis":
-			summary = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds)
-		else:
-			pass
-
+		summary = list()
+		fig=None
+		pic_size=len(reply)#要绘制多少个图
+		for i in range(len(reply)):
+			temp_summary=None
+			if reply[i] == "WQRS_Algorithm":
+				temp_summary,fig= wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,pic_index=i+1,pic_size=pic_size,fig=fig)
+			elif reply[i] == "XQRS_Algorithm":
+				temp_summary, fig= xqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,pic_index=i+1,pic_size=pic_size,fig=fig)
+			elif reply[i] == "GQRS_Algorithm":
+				temp_summary, fig = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,pic_index=i+1,pic_size=pic_size,fig=fig)
+			elif reply[i] == "SQRS_Algorithm":
+				temp_summary, fig = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq,pic_index=i+1,pic_size=pic_size,fig=fig)
+			elif reply[i] == "SQRS125_Algorithm":
+				temp_summary, fig = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq,pic_index=i+1,pic_size=pic_size,fig=fig)
+			elif reply[i] == "EcgAnalysis_Algorithm and HRV_Analysis":
+				temp_summary, fig = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq,pic_index=i+1,pic_size=pic_size,fig=fig)
+			else:
+				pass
+			temp_summary[-1]+='\n'
+			summary += temp_summary
 		summary_ = ""
 		for item in summary:
 			summary_ += item + '\n'
 		title = "结果分析"
-		if reply == "EcgAnalysis_Algorithm and HRV_Analysis":
-			title = "结果分析以及心率变异系数"
 		g.msgbox(msg=summary_, title=title)

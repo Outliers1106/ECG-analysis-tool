@@ -1,5 +1,6 @@
 from wfdb import processing
 import matplotlib.pyplot as plt
+import numpy as np
 class new_Comparitor(processing.Comparitor):
 	def plot(self, sig_style='',pic_size=1,pic_index=1,title=None, figsize=None,return_fig=False,
 			 fig=None):
@@ -29,7 +30,7 @@ class new_Comparitor(processing.Comparitor):
 			ax.plot(self.unmatched_test_sample,
 					self.signal[self.unmatched_test_sample], 'rx')
 
-			ax.legend(legend)
+			ax.legend(legend,fontsize=6,loc='lower right')
 
 		# Just plot annotations
 		else:
@@ -40,12 +41,12 @@ class new_Comparitor(processing.Comparitor):
 			# Plot test annotations
 			ax.plot(self.matched_test_sample, 0.5 * np.ones(self.tp), 'g+')
 			ax.plot(self.unmatched_test_sample, 0.5 * np.ones(self.fp), 'rx')
-			ax.legend(legend[1:])
+			ax.legend(legend[1:],fontsize=6,loc='lower right')
 
 		if title:
-			ax.set_title(title)
+			ax.set_title(title,fontsize=8)
 
-		ax.set_xlabel('time/sample')
+		#ax.set_xlabel('time/sample')
 
 		fig.show()
 
