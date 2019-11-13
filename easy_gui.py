@@ -83,13 +83,13 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 		#ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
 		ax.annotate(r'miss',
 				 xy=(sample, sig[sample][0]), xycoords='data',
-				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
+				 xytext=(+10, +10), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 	for sample in unmatched_test_sample:
 		#ax.scatter([sample, ], [sig[sample][0], ], 50, color='red')
 		ax.annotate(r'X',
 				 xy=(sample, sig[sample][0]), xycoords='data',
-				 xytext=(+0, +15), textcoords='offset points', fontsize=8,
+				 xytext=(+10, +10), textcoords='offset points', fontsize=8,
 				 arrowprops=dict(arrowstyle="->", connectionstyle="arc3,rad=.2"))
 
 	if algorithm_name=='EcgAnalysis':
@@ -114,7 +114,10 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 				ax.plot([index_l, index_r], [max_val, max_val], linewidth=0.7,color='black')  # 水平实线
 				interval_num = "%.2f" % ((index_r - index_l) / freq)
 				label="RR:"+interval_num+"s"
-				ax.text((index_l + index_r) / 2, max_val*1.005, label, fontdict={'size': 8})
+				#ax.text((index_l + index_r) / 2, max_val*1.005, label, fontdict={'size': 8})
+				ax.annotate(label, xy=((index_l + index_r) / 2, max_val*1.005), xycoords='data', xytext=(0, +1),
+						 textcoords='offset points', fontsize=8
+						)
 		# annotation_word='PP Intervals:'+interval_num +'s'
 		# ax.text((index_l+index_r)/2,mid,annotation_word,fontdict={'size':8})
 
@@ -410,7 +413,8 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 	p_inds-= sampfrom
 	t_inds-= sampfrom
 
-
+	if len(qrs_inds)<1:
+		qrs_inds=np.array([-100])
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
 	if skip_flag:
 		return draw_graph(r_peak_inds, sig, fields, 'EcgAnalysis', qrs_inds,p_inds,t_inds,freq,fig=fig,pic_index=pic_index,pic_size=pic_size,skip_flag=skip_flag)
@@ -498,6 +502,13 @@ def select_multirecord(ecg_list):
 	choices_list = ["XQRS_Algorithm", "GQRS_Algorithm", "WQRS_Algorithm", "SQRS_Algorithm", "SQRS125_Algorithm",
 					"EcgAnalysis_Algorithm and HRV_Analysis"]
 	reply = g.choicebox(msg, title, choices=choices_list)
+
+	tp=0
+	fp=0
+	fn=0
+	n_ref=0
+	n_test=0
+
 	for ecg_name in ecg_list:
 		freq=None
 		if ecg_name[0] == 'C':
@@ -512,6 +523,7 @@ def select_multirecord(ecg_list):
 		sampto=len(sig)
 		channel=0
 		r_peak_inds = read_r_peak(ecg_file_name, sampfrom, sampto)
+		comparitor=None
 		if reply == "WQRS_Algorithm":
 			comparitor = wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
 		elif reply == "XQRS_Algorithm":
@@ -526,9 +538,26 @@ def select_multirecord(ecg_list):
 			comparitor = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
 		else:
 			pass
+		tp+=comparitor.tp
+		fp+=comparitor.fp
+		fn+=comparitor.fn
+		n_ref+=comparitor.n_ref
+		n_test+=comparitor.n_test
 		print(ecg_name,"done")
 
-
+	sensitivity=tp/n_ref
+	positive_predictivity=tp/n_test
+	false_positive_predictivity=fp/n_test
+	summary=''
+	summary+=reply+'\n'
+	summary+='Total Ecg_file num: %d \n' %len(ecg_list)
+	summary+='True Positives (matched samples):%d \n' %tp
+	summary+='False Positives (unmatched test samples):%d \n' %fp
+	summary+='False Negatives (unmatched reference samples): %d \n' %fn
+	summary+='Sensitivity: %.4f (%d/%d) \n' %(sensitivity,tp,n_ref)
+	summary+='Positive Predictivity: %.4f (%d/%d) \n' %(positive_predictivity,tp,n_test)
+	summary+='False Positive Rate: %.4f (%d/%d) \n' %(false_positive_predictivity,fp,n_test)
+	g.msgbox(msg=summary, title='结果分析')
 
 
 
@@ -536,13 +565,13 @@ if __name__=="__main__":
 	while True:
 		# part 1 选择数据
 		choices_list = []
-		for i in range(2000):
-			num = "%05d" % (i + 1)
-			choices_list.append('CPSC' + num)
 		for i in range(25):
 			choices_list.append(str(100 + i))
 		for i in range(35):
 			choices_list.append(str(200 + i))
+		for i in range(2000):
+			num = "%05d" % (i + 1)
+			choices_list.append('CPSC' + num)
 
 		msg = "请选择心电数据"
 		title = "选择心电数据"

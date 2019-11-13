@@ -125,7 +125,6 @@ then
         LO3=0.15
         HI3=0.4
     else
-    	echo "! PWRBANDS and !-n SFLAG"
         LO1=0
         HI1=0.0033
         LO2=0.0033
