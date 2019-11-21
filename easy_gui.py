@@ -508,7 +508,7 @@ def select_multirecord(ecg_list):
 	fn=0
 	n_ref=0
 	n_test=0
-
+	processed_num=0
 	for ecg_name in ecg_list:
 		freq=None
 		if ecg_name[0] == 'C':
@@ -524,20 +524,26 @@ def select_multirecord(ecg_list):
 		channel=0
 		r_peak_inds = read_r_peak(ecg_file_name, sampfrom, sampto)
 		comparitor=None
-		if reply == "WQRS_Algorithm":
-			comparitor = wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
-		elif reply == "XQRS_Algorithm":
-			comparitor = xqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
-		elif reply == "GQRS_Algorithm":
-			comparitor = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
-		elif reply == "SQRS_Algorithm":
-			comparitor = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
-		elif reply == "SQRS125_Algorithm":
-			comparitor = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
-		elif reply == "EcgAnalysis_Algorithm and HRV_Analysis":
-			comparitor = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,skip_flag=True)
-		else:
-			pass
+		try:
+			if reply == "WQRS_Algorithm":
+				comparitor = wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+			elif reply == "XQRS_Algorithm":
+				comparitor = xqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+			elif reply == "GQRS_Algorithm":
+				comparitor = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+			elif reply == "SQRS_Algorithm":
+				comparitor = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+			elif reply == "SQRS125_Algorithm":
+				comparitor = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+			elif reply == "EcgAnalysis_Algorithm and HRV_Analysis":
+				comparitor = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,
+												   skip_flag=True)
+			else:
+				pass
+		except Exception as e:
+			print(e)
+			break
+		processed_num=processed_num+1
 		tp+=comparitor.tp
 		fp+=comparitor.fp
 		fn+=comparitor.fn
@@ -550,7 +556,7 @@ def select_multirecord(ecg_list):
 	false_positive_predictivity=fp/n_test
 	summary=''
 	summary+=reply+'\n'
-	summary+='Total Ecg_file num: %d \n' %len(ecg_list)
+	summary+='Processed Ecg_file num: %d \n' %processed_num
 	summary+='True Positives (matched samples):%d \n' %tp
 	summary+='False Positives (unmatched test samples):%d \n' %fp
 	summary+='False Negatives (unmatched reference samples): %d \n' %fn
@@ -563,18 +569,22 @@ def select_multirecord(ecg_list):
 
 if __name__=="__main__":
 	while True:
-		# part 1 选择数据
+		# part 1 选择数据集和数据
+		dataset=g.choicebox("选择数据集","选择数据集",['MIT','CPSC'])
 		choices_list = []
-		for i in range(25):
-			choices_list.append(str(100 + i))
-		for i in range(35):
-			choices_list.append(str(200 + i))
-		not_exist=[110,120,204,206,211,216,218,224,225,226,227,229]
-		for num in not_exist:
-			choices_list.remove(str(num))
-		for i in range(2000):
-			num = "%05d" % (i + 1)
-			choices_list.append('CPSC' + num)
+		if dataset=='MIT':
+			for i in range(25):
+				choices_list.append(str(100 + i))
+			for i in range(35):
+				choices_list.append(str(200 + i))
+			not_exist = [110, 120, 204, 206, 211, 216, 218, 224, 225, 226, 227, 229]
+			for num in not_exist:
+				choices_list.remove(str(num))
+		elif dataset=='CPSC':
+			for i in range(2000):
+				num = "%05d" % (i + 1)
+				choices_list.append('CPSC' + num)
+
 
 		msg = "请选择心电数据"
 		title = "选择心电数据"
