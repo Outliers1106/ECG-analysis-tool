@@ -3,7 +3,7 @@ PRIntervals: 0.182037 s
 QTIntervals: 0.391233 s
 QQIntervals: 0.812458 s
 PPIntervals: 0.8375 s
-TTIntervals: 0.838368 s
+TTIntervals: 8.07548e+159 s
 Ramp:        278.092 mV
 Pamp:        4.75602 mV
 Tamp:        5.07747 mV
