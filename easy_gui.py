@@ -569,6 +569,9 @@ if __name__=="__main__":
 			choices_list.append(str(100 + i))
 		for i in range(35):
 			choices_list.append(str(200 + i))
+		not_exist=[110,120,204,206,211,216,218,224,225,226,227,229]
+		for num in not_exist:
+			choices_list.remove(str(num))
 		for i in range(2000):
 			num = "%05d" % (i + 1)
 			choices_list.append('CPSC' + num)
