@@ -46,6 +46,9 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 		num=qrs_inds[0]
 		qrs_inds=np.array([-100])
 		qrs_inds=np.append(qrs_inds,num)
+	elif len(qrs_inds)==0:
+		qrs_inds=np.array([-100,-100])
+	print('qrs_inds',qrs_inds)
 	#至少有两个点才能用下面这个函数
 	comparitor = compare_annotations(ref_sample=r_peak_inds,  # 真实的r波位置
 												test_sample=qrs_inds,  # 算法算出的r波位置
@@ -110,7 +113,6 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 				index_l = qrs_inds[i]
 				index_r = qrs_inds[i + 1]
 				ax.plot([index_l, index_l], [sig[index_l], max_val] , ':', linewidth=1.0,color="red")  # 竖直点线
-				#ax.plot([index_r, index_r], [0, max_val], ':', linewidth=0.5)
 				ax.plot([index_l, index_r], [max_val, max_val], linewidth=0.7,color='black')  # 水平实线
 				interval_num = "%.2f" % ((index_r - index_l) / freq)
 				label="RR:"+interval_num+"s"
@@ -125,7 +127,6 @@ def draw_graph(r_peak_inds,sig,fields,algorithm_name,qrs_inds=None,p_inds=None,t
 	plt.grid()
 	if pic_size==pic_index:
 		plt.show(ax)
-	# plotdata = buffer.getvalue()
 	return summary,fig
 #读取MIT数据，返回r波峰值位置
 #文件名 开始点 结束点
@@ -148,8 +149,17 @@ def read_r_peak(filename,sampfrom=None,sampto=None):
 	sample=sample[isin]
 	return sample
 
-#文件名 开始点 结束点 通道 r波坐标
-#'mit-bih-arrhythmia-database-1.0.0/100' 0 10000 0或1 list
+'''
+filename 文件名
+sampfrom 采样起始点
+sampto 采样终止点
+channel 通道
+r_peak_inds 数据本身注释的r波位置
+fig 绘图所用
+pic_index 表示第几个图
+pic_size 表示总共几个图
+skip_flag 表示是否跳过画图直接返回结果
+'''
 def xqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,fig=None,pic_index=1,pic_size=1,skip_flag=False):
 	sig, fields = wfdb.rdsamp(filename, channels=[channel],sampfrom=sampfrom,sampto=sampto)
 
@@ -165,8 +175,18 @@ def xqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None
 
 	return summary, fig
 
-#文件名 开始点 结束点 通道 r波坐标
-#'mit-bih-arrhythmia-database-1.0.0/100' 0 10000 0或1 list
+
+'''
+filename 文件名
+sampfrom 采样起始点
+sampto 采样终止点
+channel 通道
+r_peak_inds 数据本身注释的r波位置
+fig 绘图所用
+pic_index 表示第几个图
+pic_size 表示总共几个图
+skip_flag 表示是否跳过画图直接返回结果
+'''
 def gqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,fig=None,pic_index=1,pic_size=1,skip_flag=False):
 	sig, fields = wfdb.rdsamp(filename, channels=[channel], sampfrom=sampfrom,sampto=sampto)
 	qrs_inds=processing.gqrs_detect(sig=sig[:,0],fs=fields['fs'])
@@ -181,6 +201,17 @@ def gqrs_algorithm(filename,sampfrom=None,sampto=None,channel=0,r_peak_inds=None
 	return summary, fig
 
 
+'''
+filename 文件名
+sampfrom 采样起始点
+sampto 采样终止点
+channel 通道
+r_peak_inds 数据本身注释的r波位置
+fig 绘图所用
+pic_index 表示第几个图
+pic_size 表示总共几个图
+skip_flag 表示是否跳过画图直接返回结果
+'''
 def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,fig=None,pic_index=1,pic_size=1,skip_flag=False):
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
 	r_peak_inds -= sampfrom
@@ -211,22 +242,14 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 		c_char_data2[i] = ctypes.c_char_p(c_char.value)
 	#进行类型转换 c语言原型(int, char**, int, char**)
 	BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	print(BASE_DIR)
 	path_dll = os.path.join(BASE_DIR, 'ECG-analysis-tool/DLL').replace("\\","/")
 	os.environ['path'] += ';' + path_dll  # 添加依赖文件目录 即 D:\ECG_PROJECT\yihaecg-web\dashboard\DLL
-	#print(os.environ['path'])
-	#print(path_dll)
-	#print(os.getcwd())
-	#path_dll=path_dll+'/Project_qrs.dll'
-	#dll = CDLL(path_dll)
 	dll=ctypes.cdll.LoadLibrary('Project_qrs.dll')
 
 	dll.wqrs_func.restype = ctypes.POINTER(ctypes.c_int)#函数返回值为int* 需要如此转换
 	res=dll.wqrs_func(argc1,c_char_data1,argc2,c_char_data2)
-	print(dll)
 
 	_ctypes.FreeLibrary(dll._handle)
-	print(dll)
 	os.environ['path'].strip(';'+path_dll)
 	#win32api.FreeLibrary(dll._handle)
 
@@ -243,7 +266,6 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 		if res[i+1]>=sampfrom and res[i+1]<=sampto:
 			qrs_inds.append(res[i+1])
 	qrs_inds=np.array(qrs_inds)
-	print(qrs_inds)
 	qrs_inds-=sampfrom
 
 	if skip_flag:
@@ -253,8 +275,19 @@ def wqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	return summary,fig
 
 
+'''
+filename 文件名
+sampfrom 采样起始点
+sampto 采样终止点
+channel 通道
+r_peak_inds 数据本身注释的r波位置
+freq 数据的采样频率 CPSC和MIT的频率分别为500和360
+fig 绘图所用
+pic_index 表示第几个图
+pic_size 表示总共几个图
+skip_flag 表示是否跳过画图直接返回结果
+'''
 def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,freq=None,fig=None,pic_index=1,pic_size=1,skip_flag=False):
-
 	ecg_file_name_list = ecg_file_name.split('/')
 	ecg_name = ecg_file_name_list[len(ecg_file_name_list) - 1]
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
@@ -283,22 +316,14 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 		c_char_data2[i] = ctypes.c_char_p(c_char.value)
 	#进行类型转换 c语言原型(int, char**, int, char**)
 	BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	print(BASE_DIR)
 	path_dll = os.path.join(BASE_DIR, 'ECG-analysis-tool/DLL').replace("\\","/")
 	os.environ['path'] += ';' + path_dll  # 添加依赖文件目录 即 D:\ECG_PROJECT\yihaecg-web\dashboard\DLL
-	#print(os.environ['path'])
-	#print(path_dll)
-	#print(os.getcwd())
-	#path_dll=path_dll+'/Project_qrs.dll'
-	#dll = CDLL(path_dll)
 	dll=ctypes.cdll.LoadLibrary('Project_qrs.dll')
 
 	dll.sqrs_func.restype = ctypes.POINTER(ctypes.c_int)#函数返回值为int* 需要如此转换
 	res=dll.sqrs_func(argc1,c_char_data1,argc2,c_char_data2)
-	print(dll)
 
 	_ctypes.FreeLibrary(dll._handle)
-	print(res)
 	os.environ['path'].strip(';'+path_dll)
 	#win32api.FreeLibrary(dll._handle)
 
@@ -315,7 +340,6 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 		if res[i+1]<=sampto and res[i+1]>=sampfrom:
 			qrs_inds.append(res[i+1])
 	qrs_inds=np.array(qrs_inds)
-	print(qrs_inds)
 	qrs_inds -= sampfrom
 	# 标记位置减去采样点开始位置得到相对位置
 	if skip_flag:
@@ -323,7 +347,18 @@ def sqrs_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds
 	summary, fig =draw_graph(r_peak_inds, sig, fields, 'SQRS', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
 
 	return summary, fig
-
+'''
+filename 文件名
+sampfrom 采样起始点
+sampto 采样终止点
+channel 通道
+r_peak_inds 数据本身注释的r波位置
+freq 数据的采样频率 CPSC和MIT的频率分别为500和360
+fig 绘图所用
+pic_index 表示第几个图
+pic_size 表示总共几个图
+skip_flag 表示是否跳过画图直接返回结果
+'''
 def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_inds=None,freq=None,fig=None,pic_index=1,pic_size=1,skip_flag=False):
 	sig, fields = wfdb.rdsamp(ecg_file_name, channels=[channel], sampfrom=sampfrom, sampto=sampto)
 	r_peak_inds -= sampfrom
@@ -352,22 +387,14 @@ def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_i
 		c_char_data2[i] = ctypes.c_char_p(c_char.value)
 	#进行类型转换 c语言原型(int, char**, int, char**)
 	BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	print(BASE_DIR)
 	path_dll = os.path.join(BASE_DIR, 'ECG-analysis-tool/DLL').replace("\\","/")
 	os.environ['path'] += ';' + path_dll  # 添加依赖文件目录 即 D:\ECG_PROJECT\yihaecg-web\dashboard\DLL
-	#print(os.environ['path'])
-	#print(path_dll)
-	#print(os.getcwd())
-	#path_dll=path_dll+'/Project_qrs.dll'
-	#dll = CDLL(path_dll)
 	dll=ctypes.cdll.LoadLibrary('Project_qrs.dll')
 
 	dll.sqrs125_func.restype = ctypes.POINTER(ctypes.c_int)#函数返回值为int* 需要如此转换
 	res=dll.sqrs125_func(argc1,c_char_data1,argc2,c_char_data2)
-	print(dll)
 
 	_ctypes.FreeLibrary(dll._handle)
-	print(res)
 	os.environ['path'].strip(';'+path_dll)
 	#win32api.FreeLibrary(dll._handle)
 
@@ -384,19 +411,28 @@ def sqrs125_algorithm(ecg_file_name,sampfrom=None,sampto=None,channel=0,r_peak_i
 		if res[i+1]<=sampto and res[i+1]>=sampfrom:
 			qrs_inds.append(res[i+1])
 	qrs_inds=np.array(qrs_inds)
-	print(qrs_inds)
 	# 标记位置减去采样点开始位置得到相对位置
 	qrs_inds -= sampfrom
 	if skip_flag:
 		return draw_graph(r_peak_inds, sig, fields, 'SQRS125', qrs_inds, fig=fig, pic_index=pic_index,pic_size=pic_size, skip_flag=skip_flag)
 	summary, fig =draw_graph(r_peak_inds, sig, fields, 'SQRS125', qrs_inds,fig=fig,pic_index=pic_index,pic_size=pic_size)
 	return summary, fig
-
+'''
+filename 文件名
+sampfrom 采样起始点
+sampto 采样终止点
+channel 通道
+r_peak_inds 数据本身注释的r波位置
+freq 数据的采样频率 CPSC和MIT的频率分别为500和360
+fig 绘图所用
+pic_index 表示第几个图
+pic_size 表示总共几个图
+skip_flag 表示是否跳过画图直接返回结果
+'''
 def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_inds=None,freq=None,fig=None,pic_index=1,pic_size=1,skip_flag=False):
 	ecg_file_name_list = ecg_file_name.split('/')
 	ecg_name = ecg_file_name_list[len(ecg_file_name_list) - 1]
 	BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-	print(BASE_DIR)
 	path_dll = os.path.join(BASE_DIR, 'ECG-analysis-tool/DLL').replace("\\","/")
 	os.environ['path'] += ';' + path_dll  # 添加依赖文件目录 即 D:\ECG_PROJECT\yihaecg-web\dashboard\DLL
 	dll=ctypes.cdll.LoadLibrary('Project_qrs.dll')
@@ -434,7 +470,6 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 		summary_hrv.append(line)
 	f.close()
 	# 将HRV参数结果放入summary中
-	print(summary_hrv)
 	for item in summary_hrv:
 		summary.append(item)
 	return summary, fig
@@ -496,7 +531,19 @@ def read_peaks_and_intervals_for_EcgAnalysis(sampfrom,sampto):
 
 
 
-def select_multirecord(ecg_list):
+def select_multirecord(ecg_list,CPSC_flag=False):
+	if CPSC_flag:
+		fieldNames = ["开始", "结束"]
+		title = "请输入选择数据的范围"
+		msg = "请输入选择数据的范围（1~2000）"
+		fieldValues = g.multenterbox(msg, title, fieldNames)
+		start_record_num=int(fieldValues[0])
+		end_record_num=int(fieldValues[1])
+		ecg_list=list()
+		for i in range(start_record_num,end_record_num+1):
+			num = "%05d" % i
+			ecg_list.append('CPSC' + num)
+
 	msg = "请选择心电检测算法"
 	title = "选择心电检测算法"
 	choices_list = ["XQRS_Algorithm", "GQRS_Algorithm", "WQRS_Algorithm", "SQRS_Algorithm", "SQRS125_Algorithm",
@@ -524,6 +571,7 @@ def select_multirecord(ecg_list):
 		channel=0
 		r_peak_inds = read_r_peak(ecg_file_name, sampfrom, sampto)
 		comparitor=None
+
 		try:
 			if reply == "WQRS_Algorithm":
 				comparitor = wqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
@@ -532,11 +580,11 @@ def select_multirecord(ecg_list):
 			elif reply == "GQRS_Algorithm":
 				comparitor = gqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
 			elif reply == "SQRS_Algorithm":
-				comparitor = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+				comparitor = sqrs_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq,skip_flag=True)
 			elif reply == "SQRS125_Algorithm":
-				comparitor = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, skip_flag=True)
+				comparitor = sqrs125_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds, freq,skip_flag=True)
 			elif reply == "EcgAnalysis_Algorithm and HRV_Analysis":
-				comparitor = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,
+				comparitor = EcgAnalysis_algorithm(ecg_file_name, sampfrom, sampto, channel, r_peak_inds,freq,
 												   skip_flag=True)
 			else:
 				pass
@@ -581,6 +629,7 @@ if __name__=="__main__":
 			for num in not_exist:
 				choices_list.remove(str(num))
 		elif dataset=='CPSC':
+			choices_list.append('MultipleSelection')
 			for i in range(2000):
 				num = "%05d" % (i + 1)
 				choices_list.append('CPSC' + num)
@@ -588,12 +637,18 @@ if __name__=="__main__":
 
 		msg = "请选择心电数据"
 		title = "选择心电数据"
-		ecg_name = g.multchoicebox(msg, title, choices=choices_list)
+		ecg_name_list=None
+		if dataset=='MIT':
+			ecg_name_list = g.multchoicebox(msg, title, choices=choices_list)
+		elif dataset=='CPSC':
+			ecg_name_list = g.multchoicebox(msg,title,choices=choices_list)
 
-		if len(ecg_name)>1:
-			select_multirecord(ecg_name)#选多条记录默认只输出统计结果
-		else:
-			ecg_name = ecg_name[0]
+		if len(ecg_name_list)>1:
+			select_multirecord(ecg_name_list)#选多条记录默认只输出统计结果
+		elif len(ecg_name_list)==1 and ecg_name_list[0]=='MultipleSelection':
+			select_multirecord(ecg_name_list,CPSC_flag=True)
+		elif len(ecg_name_list)==1:
+			ecg_name = ecg_name_list[0]
 			freq = None
 			if ecg_name[0] == 'C':
 				freq = 500
@@ -609,10 +664,8 @@ if __name__=="__main__":
 
 			msg = "请输入数据起始点、终止点、数据通道(0,1),"
 			msg += ("当前数据终止点为" + str(sig_len))
-			print(msg)
 			fieldNames = ["*数据起始点", "*数据终止点", "*数据通道"]
 			defaultValues = ['0', str(sig_len), '0']
-			fieldValues = []
 			title = "ECG相关信息输入"
 			fieldValues = g.multenterbox(msg, title, fieldNames, defaultValues)
 			while True:
@@ -671,5 +724,3 @@ if __name__=="__main__":
 				summary_ += item + '\n'
 			title = "结果分析"
 			g.msgbox(msg=summary_, title=title)
-
-
