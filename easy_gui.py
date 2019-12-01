@@ -11,8 +11,8 @@ import os
 import ctypes
 import _ctypes
 import re
+from tkinter import *
 from wfdb_func import *
-import win32api
 class __Autonomy__(object):
     """
     自定义变量的write方法
@@ -434,7 +434,10 @@ def EcgAnalysis_algorithm(ecg_file_name,sampfrom=0,sampto=None,channel=0,r_peak_
 	ecg_name = ecg_file_name_list[len(ecg_file_name_list) - 1]
 	BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 	path_dll = os.path.join(BASE_DIR, 'ECG-analysis-tool/DLL').replace("\\","/")
+	os.environ['path']= ''
 	os.environ['path'] += ';' + path_dll  # 添加依赖文件目录 即 D:\ECG_PROJECT\yihaecg-web\dashboard\DLL
+
+	print(os.environ['path'])
 	dll=ctypes.cdll.LoadLibrary('Project_qrs.dll')
 	#类型转换
 	argv=ctypes.c_char_p(ecg_name.encode('utf-8'))
@@ -529,6 +532,20 @@ def read_peaks_and_intervals_for_EcgAnalysis(sampfrom,sampto):
 	return qrs_inds,p_inds,t_inds
 
 
+class Progress(object):
+	def __init__(self,ecg_name):
+		self.ecg_name=ecg_name
+		self.root = Tk()
+		self.root.geometry('245x30')
+		w=Label(self.root,text="Processing:"+ecg_name)
+		w.pack()
+		if ecg_name[0]=='C':
+			self.root.after(100,self.root.destroy)
+		else:
+			self.root.after(1000, self.root.destroy)
+		self.root.mainloop()
+
+
 
 
 def select_multirecord(ecg_list,CPSC_flag=False):
@@ -557,6 +574,7 @@ def select_multirecord(ecg_list,CPSC_flag=False):
 	n_test=0
 	processed_num=0
 	for ecg_name in ecg_list:
+		#Progress(ecg_name)
 		freq=None
 		if ecg_name[0] == 'C':
 			freq = 500
@@ -599,6 +617,7 @@ def select_multirecord(ecg_list,CPSC_flag=False):
 		n_test+=comparitor.n_test
 		print(ecg_name,"done")
 
+
 	sensitivity=tp/n_ref
 	positive_predictivity=tp/n_test
 	false_positive_predictivity=fp/n_test
@@ -612,6 +631,7 @@ def select_multirecord(ecg_list,CPSC_flag=False):
 	summary+='Positive Predictivity: %.4f (%d/%d) \n' %(positive_predictivity,tp,n_test)
 	summary+='False Positive Rate: %.4f (%d/%d) \n' %(false_positive_predictivity,fp,n_test)
 	g.msgbox(msg=summary, title='结果分析')
+
 
 
 
@@ -724,3 +744,14 @@ if __name__=="__main__":
 				summary_ += item + '\n'
 			title = "结果分析"
 			g.msgbox(msg=summary_, title=title)
+
+
+
+			# 1-15 189/200
+			# 16-215 2759/2982
+			# 216-407 2536/2742
+			# 408-479 1036/1155
+			# 480-497 251/265
+			# 497-586 2681/2850
+			# 587-685 2929/3107
+			# 686-771 1076/1305
