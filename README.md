@@ -19,7 +19,7 @@ Project_qrs.dll 来自repo [link](https://github.com/Outliers1106/physionet_qrs_
 
 - 2.选择数据（单选）
 
-![image](https://github.com/Outliers1106/ECG-analysis-tool/blob/master/img/pic1.png = 200x200)
+![image](https://github.com/Outliers1106/ECG-analysis-tool/blob/master/img/pic1.png)
 
 - 3.选择数据起始点和数据通道（默认为0）
 
